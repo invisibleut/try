@@ -6,27 +6,10 @@ import math
 import time
 
 #============================================
-#build gurobi model
+#read gurobi model from .mps file
 
 from gurobipy import *
-model = Model("test")
-
-
-
-x = []
-for i in range(3):
-    x.append(model.addVar(vtype=GRB.INTEGER, name="x%d" %(i+1)))
-
-model.update() # add variables first so that constrants can be added.
-
-
-model.addConstr(x[0] + 2 * x[1] + 3 * x[2] >= 8, name = 'const1')
-model.addConstr(3 * x[0] + x[1] + x[2] >= 5, name = 'const2')
-
-
-model.setObjective(-7 * x[0] - 3 * x[1] - 4 * x[2], GRB.MAXIMIZE)
-model.update()
-
+model = read("randomsoc.mps")
 
 
 #=============================================
@@ -142,9 +125,11 @@ while (not Q.isEmpty()) and time.time()-start_time <60:
 
 end_time = time.time()
 
-bnb_time = end_time - start_time
+bnb_time = round(end_time - start_time, 3)
 
+print "\n========================================="
 print "Branch and bound completed in %s s" %bnb_time
+print "=========================================\n"
 
 for (k,v) in optSol.items():
     print k +": %f" %v
