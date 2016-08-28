@@ -11,28 +11,42 @@ import time
 from gurobipy import *
 model = read("randomsoc.mps")
 
-
+setParam("DualReductions", 0) # make opt status of INF_OR_UNBD more definitive
+setParam('OutputFlag', 0)
+#setParam('Heuristics', 0)
 #=============================================
 
 #initial setup
 root_model = model.relax().copy()
 root_model.optimize()
+if root_model.status == 3:
+    print "Model was proven to be infeasible."
+    exit()
+elif root_model.status == 5:
+    print "Model was proven to be unbounded."
+    exit()
+elif root_model.status == 2:
+    pass
+else:
+    print "Something wrong with your model. Status code is %d" %root_model.status
+    exit()
 
-#modelsense = +1 if minimization; -1 if maximization
-model_sense = root_model.modelsense
+#ModelSense = +1 if minimization; -1 if maximization
+model_sense = root_model.ModelSense
 priority = model_sense * root_model.ObjVal
 
+
+#use priority queue to implement best-first search strategy
 Q = pQueue()
 Q.push(root_model, priority)
 
 if model_sense < 0:
     LB = -float('inf')
     UB = root_model.ObjVal
-    #best_obj = -float('inf')
+
 else:
     LB = root_model.ObjVal
     UB = float('inf')
-    #best_obj =
 
 optSol = {}
 
@@ -73,13 +87,13 @@ def prune(m):
             else:
                 priority = model_sense * m.ObjVal
                 Q.push(m, priority)
-    elif m.status == 3 or m.status == 4: # infeasible
+    elif m.status == 3: #or m.status == 4: # infeasible
         print "==========pruned by infeasibility==========="
     else:
         print "check optimization status! status code is %d" %m.status
 
 #=============================================
-
+#start branch-and-bound
 
 nodes = 1
 
@@ -129,7 +143,19 @@ bnb_time = round(end_time - start_time, 3)
 
 print "\n========================================="
 print "Branch and bound completed in %s s" %bnb_time
+print "Visited %d nodes in branching tree" %nodes
 print "=========================================\n"
 
-for (k,v) in optSol.items():
-    print k +": %f" %v
+#for (k,v) in optSol.items():
+#    print k +": %f" %v
+
+
+start_time = time.time()
+model.optimize()
+end_time = time.time()
+
+grb_time = round(end_time - start_time, 3)
+
+print "\n========================================="
+print "Gurobi built-in algorithm completed in %s s" %grb_time
+print "=========================================\n"
